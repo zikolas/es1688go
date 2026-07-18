@@ -220,6 +220,39 @@ of their parents with shared code factored out. Spec grounding carried over:
   `(?)`** on the machine where the ghost hunt began (the flag-clobber fix
   closing the loop).  FM correctly falls back to SB-base per SystemSoft's
   span refusal.  Lab debris swept from the box.
+- 2026-07-18 **OmniBook 425 closure** (1.3, pushed over a moody serial
+  link via chunked base64 appends, CRC-verified; CARDGO-era files swept):
+  **REX-5571** — the card whose lost driver started this project family —
+  first-ever exercise of its manifest entry: VERS_1 "CARD 71" match,
+  full house `SB 220 FM 388 MPU 330 JOY 201 IRQ 5`, windows 4-7, clean
+  MPU ACK.  All three machines now run 1.3.
+- 2026-07-18 **Game verification, OB425 + REX-5571 (1.3)**: Monkey Island
+  with Roland MIDI (MPU-401 UART out to the CM-32L) and with AdLib FM;
+  Another World on SB direct-DAC.  All working by ear - MPU, FM and DSP
+  paths proven end-to-end under real games, not just probes.
+- 2026-07-18 **Toshiba T2130CT (ToPIC)**: the ToPIC controller answers the
+  82365 ID probe and the whole PCIC backend passes first try - scan,
+  power-good poll, D000 attr window, CIS/manifest (REX-5571), COR, both
+  I/O windows, DSP v3.01, clean MPU ACK.  Fourth machine, fifth host
+  flavor (true 82365, ToPIC-as-ExCA, SystemSoft CS, IBM CS, HP SS), all
+  via auto-detect.  (IRQ delivery still unproven end-to-end anywhere -
+  nothing we run uses it.)
+- 2026-07-18 T2130CT field notes (both benign, neither enabler-related):
+  (1) transient LEFT-ONLY audio on FM + DAC with the 5571, cleared by
+  reseating and absent on the 5572 and the reseated 5571 - contact/seating
+  class (a marginal ground pin through the socket can break one channel's
+  analog return); first-check for any one-sided PCMCIA sound card.
+  (2) Monkey Island 1 garbled CM-32L instruments on the DX4 while Monkey
+  Island 2 is perfect - MI1's 1990 Roland driver paces its SysEx patch
+  upload with CPU-bound delay loops (the classic MT-32-family fast-machine
+  overflow); MI2's iMUSE paces correctly.  Same card/module/enabler both
+  ways: the MIDI path is exonerated.  **Confirmed same night: CPU speed =
+  Low fixes MI1's CM-32L output on the T2130CT.**
+- 2026-07-18 **Phoenix CS stack on the T2130CT** (Toshiba-bundled Phoenix
+  SS/CS): CS backend passes, operator-verified - the FOURTH Card Services
+  implementation (SystemSoft, IBM Play At Will, Phoenix) and sixth host
+  flavor overall (those three CS stacks + HP SS + true 82365 + ToPIC
+  direct), all via auto-detect, one binary, no switches.
 - 2026-07-18 DOSBox-X smoke tests (no PCMCIA hardware — plumbing only):
   auto-detect prints the no-host message and survives DOSBox's INT 1A
   oddities (AH=AFh undefined; AH=80h is a Tandy call there — the zeroed-CX

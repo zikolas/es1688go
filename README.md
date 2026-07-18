@@ -159,15 +159,24 @@ timing diagnostic — born of the great `MPU 330(?)` hunt).
 - [x] **PCIC regression on the PC110** (2026-07-18, REX-5572, v1.2): full
       summary incl. **clean `MPU 330`**, tone audible; side-by-side match
       with the parent `ES1688GO.EXE` output.
+- [x] **PCIC on a Toshiba ToPIC, T2130CT** (2026-07-18, REX-5571, v1.3):
+      the ToPIC answers the 82365 probe and the full PCIC path passes
+      first try — clean MPU, both windows, auto-detected.
+- [x] **CS on the Toshiba/Phoenix stack, T2130CT** (2026-07-18, v1.3):
+      fourth Card Services implementation verified.
 - [x] **CS on IBM Play At Will, PC110** (2026-07-18, REX-5572, v1.2/1.3):
       third Card Services implementation verified (DOS CS driver 2.22, CS
       2.10). Auto-detect correctly prefers the CS arbiter over the raw
       PCIC beneath it; this stack also delivers no REGISTRATION_COMPLETE
       (the active probe carries it); `/MPU` gets the 330–389 span and
       `/MPU /JOY` the **full house** — `SB 220 FM 388 MPU 330 JOY 201`.
-- [~] OB regression on the OmniBook 425 (2026-07-18, REX-5572, v1.1): full
-      enable, windows, FM verified; showed the probe bug's `(?)` — 1.2
-      re-verify pending. KXL-C101 + window matrix still to do.
+- [x] **OB regression on the OmniBook 425** (2026-07-18, v1.1–1.3):
+      REX-5572 full enable/windows/FM on 1.1; 1.3 closure with the
+      **REX-5571** (first exercise of its manifest entry, "CARD 71"
+      VERS_1 match): full house SB/FM/MPU/JOY, clean MPU — then proven
+      under real games: Monkey Island via Roland MIDI (CM-32L) and AdLib,
+      Another World on SB direct-DAC. KXL-C101 + polite-window matrix
+      re-run still to do.
 
 ## The `MPU 330(?)` bug (fixed in 1.2)
 
