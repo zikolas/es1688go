@@ -1,5 +1,5 @@
 ;==========================================================================
-;  ES1688GO 1.2 - unified clean-room DOS enabler for ES1688-based PCMCIA
+;  ES1688GO 1.3 - unified clean-room DOS enabler for ES1688-based PCMCIA
 ;               (developed as CARDGO 1.0-1.2; renamed at first commit -
 ;               the name is inherited from the original PCIC-only C
 ;               enabler this project subsumes)
@@ -39,8 +39,8 @@
 ;    /NOFM     don't claim the dedicated FM port (SB-base FM still works)
 ;    /MPU[=hex] MPU-401 UART port (300/310/320/330; default 330)
 ;    /NOMPU    never claim the MPU port
-;    /JOY      gameport at 201 (PCIC: folded into the SB window; OB: own
-;              window; not possible through CS - only two I/O ranges)
+;    /JOY      gameport at 201 (PCIC/CS: folded into the SB range; OB:
+;              own window)
 ;    /I=dec    IRQ (default 5; MPU routing needs 5/7/9/10)
 ;    /S=dec    socket (PCIC 0-7, OB 1-4, CS: probe only this socket)
 ;    /W=hex    attr-window segment for the CIS/COR access (PCIC; def D000)
@@ -88,7 +88,7 @@ MODE_PCIC equ 3
 ; blocks BY OFFSET between two runs of the same binary, so bump this on
 ; EVERY release - offsets shift with any rebuild, and a mismatched resident
 ; copy must be refused (reboot to replace), never driven.
-CGVER     equ 0105h
+CGVER     equ 0106h
 
 TDMAX   equ 40h                       ; CS tuple-data buffer size
 VBMAX   equ 40h                       ; VERS_1 capture buffer size
@@ -171,6 +171,7 @@ versbuf  times VBMAX db 0             ; VERS_1 strings (0-separated)
 R_LEN    equ $-arg_sock
 
 em_mpu   db 0                         ; CS: effective MPU request this card
+em_joy   db 0                         ; CS: gameport folded into range 1
 
 qcnt     db 0                         ; CS event queue (registration window)
 queue    times 16 db 0                ; 8 x (event, socket)
@@ -612,9 +613,28 @@ cs_configure:
         mov  word [p_cfg_cb+2], 0
 
         ; ---- RequestIO: range1 = SB block, range2 = FM/MPU cluster -------
+        ; /JOY folds the gameport into range 1 by stretching it down to
+        ; 200h (the PCIC win0 trick, CS-style: 200h-22Fh is one 48-byte
+        ; range, so SB + gameport cost a single resource).  If the stack
+        ; refuses everything with the stretched range, the fold is dropped
+        ; and the whole plan retried with the plain SB block.
+        mov  al, [en_joy]
+        mov  [em_joy], al
+        test byte [k_flags], F_JOY    ; card glue must decode 201h
+        jnz  .r1plan
+        mov  byte [em_joy], 0
+.r1plan:
         mov  ax, [o_sb]
+        mov  cl, 16
+        cmp  byte [em_joy], 0
+        je   .r1set
+        mov  cx, ax
+        add  cx, 16
+        sub  cx, 200h                 ; size = SB base + 16 - 200h
+        mov  ax, 200h                 ; stretch down over the gameport
+.r1set:
         mov  [p_io+2], ax
-        mov  byte [p_io+4], 16
+        mov  [p_io+4], cl
         mov  byte [p_io+5], 0
         ; plan range 2.  FM by default; MPU swaps it in (after first trying
         ; a span covering both, which works on hosts whose I/O pool has no
@@ -657,6 +677,11 @@ cs_configure:
         mov  byte [p_io_s2], 0
         call req_io
         jnc  .io_done
+        cmp  byte [em_joy], 0         ; stretched range1 refused everything:
+        je   .iofail                  ; drop the gameport fold, replan once
+        mov  byte [em_joy], 0
+        jmp  .r1plan
+.iofail:
         mov  byte [r_stage], 2        ; even the bare SB block was refused
         mov  [r_code], ax
         jmp  .out
@@ -740,7 +765,10 @@ cs_configure:
 .mf1:   cmp  byte [r_mpu], 0
         je   .mf2
         or   al, M_MPU
-.mf2:   mov  [mapflags], al
+.mf2:   cmp  byte [em_joy], 0
+        je   .mf3
+        or   al, M_JOY
+.mf3:   mov  [mapflags], al
         call chip_init                ; CF = DSP never answered
         jnc  .alive
         mov  byte [r_stage], 5        ; configured but silent - report it
@@ -1470,11 +1498,8 @@ cs_mode:
         je   .f2
         xor  al, al
 .f2:    mov  [en_mpu], al
-        mov  byte [en_joy], 0
-        cmp  byte [o_joyon], 0
-        je   .f3
-        mov  si, m_csnojoy            ; only two I/O ranges through CS
-        call prstr
+        mov  al, [o_joyon]            ; /JOY: folded into I/O range 1
+        mov  [en_joy], al
 .f3:
         cmp  byte [o_force], 0
         je   .f4
@@ -3932,7 +3957,7 @@ errout:                               ; SI = message; print + exit
 ;==========================================================================
 ;  MESSAGES
 ;==========================================================================
-m_banner:  db 'ES1688GO 1.2 - unified ES1688 PC Card enabler (PCIC/CS/OB)',13,10,0
+m_banner:  db 'ES1688GO 1.3 - unified ES1688 PC Card enabler (PCIC/CS/OB)',13,10,0
 m_hostcs:  db 'Host: PCMCIA Card Services',13,10,0
 m_hostob:  db 'Host: Socket Services (OmniBook)',13,10,0
 m_hostpc:  db 'Host: 82365-class PCIC (direct)',13,10,0
@@ -4035,8 +4060,6 @@ m_offok:   db 'Released - the resident copy is dormant (run again to'
 m_vermsg:  db 'A different ES1688GO/CARDGO/CS1688GO version is resident -'
            db ' reboot to replace it.',13,10,0
 m_offnone: db 'Nothing resident to switch off.',13,10,0
-m_csnojoy: db 'Note: /JOY is not possible through Card Services (two I/O'
-           db ' ranges only) - ignored.',13,10,0
 m_csnoforce: db 'Note: /FORCE is not supported in CS mode - ignored.',13,10,0
 
 ;==========================================================================

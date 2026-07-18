@@ -201,6 +201,25 @@ of their parents with shared code factored out. Spec grounding carried over:
   passing-vs-failing morph bisect converges when theorizing does not.
 - 2026-07-18 1.2 re-verify pending on the OB425 (OB backend) and OB530
   (CS backend, needs its usual reboot to swap the resident copy).
+- 2026-07-18 **IBM Play At Will CS on the PC110** (DOS Card Services
+  Driver 2.22, CS Release 2.10 — third CS implementation): auto-detect
+  prefers the CS arbiter over the raw 82365 beneath it (correct);
+  REGISTRATION_COMPLETE is not delivered by this stack either, the active
+  socket probe carries it; RequestConfiguration accepted without the
+  SystemSoft ArgLength dance being visible.  `/MPU`: the 330-389 span IS
+  granted (the 530's refusal is SystemSoft resource-map policy, not a CS
+  limitation).  **1.3 (CGVER 0106h)**: /JOY in CS mode folds the gameport
+  into range 1 by stretching it to 200h-22Fh (the PCIC win0 trick;
+  refused stretches replan automatically to the plain SB block) - IBM
+  grants it: full house `SB 220 FM 388 MPU 330 JOY 201 IRQ 5`, clean MPU
+  ACK, on the PC110 through Card Services.  Neither parent could produce
+  this combination through a CS stack.
+- 2026-07-18 **OmniBook 530 closure** (1.3): empty-socket scan reports
+  cleanly and arms the resident; real hot-plug insert configured the
+  REX-5572; `/MPU` handoff shows **`SB 220 MPU 330 IRQ 7` — clean, no
+  `(?)`** on the machine where the ghost hunt began (the flag-clobber fix
+  closing the loop).  FM correctly falls back to SB-base per SystemSoft's
+  span refusal.  Lab debris swept from the box.
 - 2026-07-18 DOSBox-X smoke tests (no PCMCIA hardware — plumbing only):
   auto-detect prints the no-host message and survives DOSBox's INT 1A
   oddities (AH=AFh undefined; AH=80h is a Tandy call there — the zeroed-CX

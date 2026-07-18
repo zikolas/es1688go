@@ -57,7 +57,7 @@ ES1688GO [/PCIC|/CS|/OB] [/SB=220] [/FM=388] [/NOFM] [/MPU[=330]] [/NOMPU]
 | `/SB=hex` | SB base, always enabled (default 220) |
 | `/FM=hex` | dedicated AdLib/ESFM port (default 388); `/NOFM` skips it (SB-base FM still works) |
 | `/MPU[=hex]` | MPU-401 UART port (300/310/320/330; default 330); `/NOMPU` never claims it |
-| `/JOY` | gameport at 201 (PCIC: folded into the SB window; OB: own window; impossible through CS — two I/O ranges only) |
+| `/JOY` | gameport at 201 — PCIC/CS: folded into the SB range (200h–22Fh as one range); OB: own window |
 | `/I=dec` | IRQ (default 5; MPU routing needs 5/7/9/10). Decimal everywhere — OB users note: what was `/I:A` is now `/I=10` |
 | `/S=dec` | socket: PCIC 0–7, OB 1–4, CS restricts the probe (and hot-plug) to that socket |
 | `/W=hex` | attribute-window segment for the CIS/COR access (PCIC mode; default D000, auto-relocated if another card has a memory window there) |
@@ -77,10 +77,15 @@ paths work; DMA-only digitized sound does not.
 
 * **PCIC** — with none of `/FM` `/MPU` `/JOY` named: FM + MPU. Naming any
   gives exactly the named set.
-* **CS** — SB + FM; `/MPU` opts in. The enabler first requests one window
-  spanning MPU..FM; on hosts whose I/O pool has holes in between (the
-  OmniBook 530 reserves 370–377 for secondary ATA and 378–37F for LPT1) it
-  falls back to MPU-only — FM then still works at the SB base.
+* **CS** — SB + FM; `/MPU` opts in, `/JOY` folds the gameport into range 1
+  (stretched down to 200h — SB + gameport as one resource, leaving range 2
+  for the MPU..FM span: all four features inside Card Services' two I/O
+  ranges). Whether the span and the stretch are granted is up to the
+  stack's resource map: IBM's Play At Will on the PC110 grants both (full
+  house verified); SystemSoft on the OmniBook 530 refuses the span (its
+  pool reserves 370–377 for secondary ATA and 378–37F for LPT1), so `/MPU`
+  falls back to MPU-only there — FM still works at the SB base. Refused
+  stretches degrade automatically to the plain SB block.
 * **OB** — everything the card supports, degrading politely when the four
   16-byte I/O windows run out (priority SB > FM > MPU > JOY), refusing
   cleanly if an occupied window overlaps a needed range.
@@ -146,13 +151,20 @@ timing diagnostic — born of the great `MPU 330(?)` hunt).
 - [x] Assembles (NASM 3.x, byte-stable), resident image ~2.7 KB
 - [x] Emulator smoke tests: auto-detect fallthrough, all three forced-mode
       failure paths, switch parsing/validation, `/OFF` handling
-- [x] **CS regression on the OmniBook 530** (2026-07-18, REX-5572, v1.0/1.1):
+- [x] **CS regression on the OmniBook 530** (2026-07-18, REX-5572, v1.0–1.3):
       SB direct-DAC + FM + MPU all working; auto-detect, `/T` (ding), `/MPU`
-      live handoff, `/OFF`, hot-plug reinsert all pass. (The `MPU 330(?)`
-      seen there was the probe bug below — 1.2 re-verify pending.)
+      live handoff, `/OFF`, hot-plug (incl. arming on an empty scan and
+      configuring a later real insert) all pass; 1.3 shows the clean
+      `MPU 330` that closes the probe-bug saga below.
 - [x] **PCIC regression on the PC110** (2026-07-18, REX-5572, v1.2): full
       summary incl. **clean `MPU 330`**, tone audible; side-by-side match
       with the parent `ES1688GO.EXE` output.
+- [x] **CS on IBM Play At Will, PC110** (2026-07-18, REX-5572, v1.2/1.3):
+      third Card Services implementation verified (DOS CS driver 2.22, CS
+      2.10). Auto-detect correctly prefers the CS arbiter over the raw
+      PCIC beneath it; this stack also delivers no REGISTRATION_COMPLETE
+      (the active probe carries it); `/MPU` gets the 330–389 span and
+      `/MPU /JOY` the **full house** — `SB 220 FM 388 MPU 330 JOY 201`.
 - [~] OB regression on the OmniBook 425 (2026-07-18, REX-5572, v1.1): full
       enable, windows, FM verified; showed the probe bug's `(?)` — 1.2
       re-verify pending. KXL-C101 + window matrix still to do.
