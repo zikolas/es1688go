@@ -42,7 +42,7 @@
 ;    /JOY      gameport at 201 (PCIC/CS: folded into the SB range; OB:
 ;              own window)
 ;    /I=dec    IRQ (default 5; MPU routing needs 5/7/9/10)
-;    /S=dec    socket (PCIC 0-7, OB 1-4, CS: probe only this socket)
+;    /S=dec    socket (PCIC 0-7, OB 1-2, CS: probe only this socket)
 ;    /W=hex    attr-window segment for the CIS/COR access (PCIC; def D000)
 ;    /C=hex    config index for /FORCE (default 20)
 ;    /G=hex    write this byte to the ES1688 GPO port (base+7): amp-gate
@@ -1844,6 +1844,9 @@ drain_queue:
 ;  RDY/WP bits float - a socket is "in use by the OS" iff an enabled
 ;  COMMON-memory window maps it.  4 I/O windows (4-7, 16 bytes max, pow2
 ;  size), politely allocated: SB > FM > MPU > JOY degrade when they run out.
+;  Only sockets 1-2 are probed: 3/4 hold the machine's permanently
+;  attached storage cards (not user-changeable), so a sound card can
+;  never be there - and its C: drive is nothing to gamble with.
 ;==========================================================================
 FW_NOCARD  equ 0
 FW_DRIVE   equ 1
@@ -1876,12 +1879,12 @@ ob_mode:
         jmp  errout
 .ssok:
         ; ---- find + bring up a card --------------------------------------
-        mov  al, [o_sock]
-        cmp  al, 0FFh
-        je   .scan
+        mov  al, [o_sock]             ; user slots ONLY: sockets 3/4 hold
+        cmp  al, 0FFh                 ; the permanently attached storage
+        je   .scan                    ; cards - never probe or claim them
         cmp  al, 1
         jb   .badsock
-        cmp  al, 4
+        cmp  al, 2
         ja   .badsock
         mov  [sock], al
         call ob_try
@@ -1897,7 +1900,7 @@ ob_mode:
         call ob_try
         jnc  ob_got
         inc  byte [sock]
-        cmp  byte [sock], 4
+        cmp  byte [sock], 2
         jbe  .next
         jmp  ob_fails
 
@@ -4015,7 +4018,7 @@ m_badcis:  db 'CIS invalid / config register base out of range',13,10,0
 m_noss:    db 'No PCMCIA Socket Services (INT 1A) on this machine.',13,10,0
 m_sserr:   db 'Socket Services error AH=',0
 m_corbad:  db 'COR readback mismatch: ',0
-m_obbadsock: db 'Bad /S: OB sockets are 1..4.',13,10,0
+m_obbadsock: db 'Bad /S: OB user sockets are 1..2 (3/4 = internal storage).',13,10,0
 m_obnooff: db '/OFF is not supported in OB mode.',13,10,0
 m_note:    db 'Note: ',0
 m_conflict: db ' - port range in use by another card',13,10,0
