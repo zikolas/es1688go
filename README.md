@@ -178,22 +178,6 @@ timing diagnostic — born of the great `MPU 330(?)` hunt).
       Another World on SB direct-DAC. KXL-C101 + polite-window matrix
       re-run still to do.
 
-## The `MPU 330(?)` bug (fixed in 1.2)
-
-CARDGO (this project's working name) 1.0/1.1 printed `MPU 330(?)` + "not confirmed" on every machine even
-though the MPU worked perfectly. After an epic three-machine hunt through
-every environmental theory (full forensic log in `doc/DERIVATION.md`,
-2026-07-18 — worth reading as a cautionary tale), the cause was **one
-instruction** in the probe, introduced when porting OB1688GO's hardcoded
-ports to the `[o_mpu]` variable: the DX reload between `cmp al,0FEh` and
-its `jne` used `inc dx`, which rewrites ZF — so the branch tested the
-`inc`'s flags, not the compare's. The probe received the FEh ACK **every
-time**, read it (consuming it), then discarded the verdict and timed out
-polling an empty FIFO. The parents were immune because they reloaded DX
-with flag-preserving `mov`s. Diagnostic tools (`probes/MPUTEST.COM`,
-`MPUTST2.COM`) accidentally used the correct shape, which is why they
-always "proved the hardware fine" — they were right.
-
 ## Provenance
 
 Built entirely clean-room, merging three clean-room parents. Sources: each
