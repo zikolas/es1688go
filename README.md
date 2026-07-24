@@ -3,9 +3,6 @@
 **One DOS enabler for ES1688 PCMCIA sound cards — three host backends, one
 8086 `.COM`.**
 
-(Developed as **CARDGO** 1.0–1.2 and renamed at first commit: the project
-inherits the name of the original PCIC-only C enabler it subsumes.)
-
 ES1688GO merges our three sibling enablers into a single binary:
 
 | Mode | Host path | Lineage | Proven on |
