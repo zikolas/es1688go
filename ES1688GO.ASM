@@ -1,5 +1,5 @@
 ;==========================================================================
-;  ES1688GO 1.3 - unified clean-room DOS enabler for ES1688-based PCMCIA
+;  ES1688GO 1.4 - unified clean-room DOS enabler for ES1688-based PCMCIA
 ;               (developed as CARDGO 1.0-1.2; renamed at first commit -
 ;               the name is inherited from the original PCIC-only C
 ;               enabler this project subsumes)
@@ -651,10 +651,13 @@ cs_configure:
         mov  ax, [o_mpu]
         mov  [p_io_b2], ax
         mov  cx, [o_fm]
-        add  cx, 2
+        add  cx, 4                    ; 4-port FM (ESFM native needs +2/+3)
         sub  cx, ax
         mov  [p_io_s2], cl
         call req_io
+        jnc  .io_fm_mpu
+        sub  byte [p_io_s2], 2        ; conservative host refused: retry with
+        call req_io                   ; the old 2-port (AdLib-only) FM span
         jnc  .io_fm_mpu
         jmp  .r2_mpu                  ; span refused: fall back to MPU only
 .r2_fmq:
@@ -662,7 +665,10 @@ cs_configure:
         je   .r2_none
         mov  ax, [o_fm]               ; FM only
         mov  [p_io_b2], ax
-        mov  byte [p_io_s2], 2
+        mov  byte [p_io_s2], 4        ; 4-port FM (ESFM native needs +2/+3)
+        call req_io
+        jnc  .io_fm
+        mov  byte [p_io_s2], 2        ; conservative host: AdLib-only fallback
         call req_io
         jnc  .io_fm
         jmp  .r2_none
@@ -2496,7 +2502,14 @@ pc_mode:
         jae  .a2
         mov  [p_w1s], ax
 .a2:
-        inc  ax
+        add  ax, 3                    ; FM is a 4-PORT window (388-38Bh): the
+                                      ; OPL3/ESFM secondary pair at +2/+3 is
+                                      ; where drivers enable ESFM native mode.
+                                      ; The old 2-port (CIS-literal) window ate
+                                      ; those writes -> game ESFM silent while
+                                      ; AdLib worked (root-caused 2026-07-24 on
+                                      ; the 235 by hand-widening the PCIC win).
+                                      ; OB backend always had 4; CS tries 4->2.
         cmp  ax, [p_w1e]
         jbe  .w1d
         mov  [p_w1e], ax
@@ -3960,7 +3973,7 @@ errout:                               ; SI = message; print + exit
 ;==========================================================================
 ;  MESSAGES
 ;==========================================================================
-m_banner:  db 'ES1688GO 1.3 - unified ES1688 PC Card enabler (PCIC/CS/OB)',13,10,0
+m_banner:  db 'ES1688GO 1.4 - unified ES1688 PC Card enabler (PCIC/CS/OB)',13,10,0
 m_hostcs:  db 'Host: PCMCIA Card Services',13,10,0
 m_hostob:  db 'Host: Socket Services (OmniBook)',13,10,0
 m_hostpc:  db 'Host: 82365-class PCIC (direct)',13,10,0
