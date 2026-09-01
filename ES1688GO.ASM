@@ -1,5 +1,5 @@
 ;==========================================================================
-;  ES1688GO 1.6 - unified clean-room DOS enabler for ES1688-based PCMCIA
+;  ES1688GO 1.7 - unified clean-room DOS enabler for ES1688-based PCMCIA
 ;               (developed as CARDGO 1.0-1.2; renamed at first commit -
 ;               the name is inherited from the original PCIC-only C
 ;               enabler this project subsumes)
@@ -88,7 +88,7 @@ MODE_PCIC equ 3
 ; blocks BY OFFSET between two runs of the same binary, so bump this on
 ; EVERY release - offsets shift with any rebuild, and a mismatched resident
 ; copy must be refused (reboot to replace), never driven.
-CGVER     equ 0107h
+CGVER     equ 0108h
 
 TDMAX   equ 40h                       ; CS tuple-data buffer size
 VBMAX   equ 40h                       ; VERS_1 capture buffer size
@@ -239,8 +239,8 @@ P_IRQ_LEN equ 8
 p_cfg:   dw 0                         ; +00 socket
 p_cfg_at dw 0002h                     ; +02 attrs: bit1 = IRQ active
 p_cfg_vc db 50                        ; +04 Vcc  (tenths of a volt)
-p_cfg_v1 db 50                        ; +05 Vpp1
-p_cfg_v2 db 50                        ; +06 Vpp2
+p_cfg_v1 db 0                         ; +05 Vpp1
+p_cfg_v2 db 0                         ; +06 Vpp2
          db 02h                       ; +07 interface: I/O+memory
 p_cfg_cb dd 00000400h                 ; +08 config register base
          db 0                         ; +0C status reg
@@ -748,13 +748,9 @@ cs_configure:
         mov  word [p_cfg_at], 0
 .cat:
         mov  byte [p_cfg_vc], 50
-        mov  byte [p_cfg_v1], 50
-        mov  byte [p_cfg_v2], 50
-        call try_cfg                  ; walks candidate ArgLengths (1Bh dance)
-        jnc  .cfgok
-        mov  byte [p_cfg_v1], 0       ; some stacks reject Vpp=Vcc
+        mov  byte [p_cfg_v1], 0       ; Vpp OFF, no fallback: we never program
         mov  byte [p_cfg_v2], 0
-        call try_cfg
+        call try_cfg                  ; walks candidate ArgLengths (1Bh dance)
         jnc  .cfgok
         mov  [r_code], ax
         mov  byte [r_stage], 4
@@ -4066,7 +4062,7 @@ errout:                               ; SI = message; print + exit
 ;==========================================================================
 ;  MESSAGES
 ;==========================================================================
-m_banner:  db 'ES1688GO 1.6 - unified ES1688 PC Card enabler (PCIC/CS/OB)',13,10,0
+m_banner:  db 'ES1688GO 1.7 - unified ES1688 PC Card enabler (PCIC/CS/OB)',13,10,0
 m_settle:  db 'Socket is slow: CIS settled after ',0
 m_settle2: db ' x 20ms.',13,10,0
 m_settlot: db '2s or more.',13,10,0
