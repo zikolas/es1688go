@@ -1,5 +1,5 @@
 ;==========================================================================
-;  ES1688GO 1.5 - unified clean-room DOS enabler for ES1688-based PCMCIA
+;  ES1688GO 1.6 - unified clean-room DOS enabler for ES1688-based PCMCIA
 ;               (developed as CARDGO 1.0-1.2; renamed at first commit -
 ;               the name is inherited from the original PCIC-only C
 ;               enabler this project subsumes)
@@ -4066,7 +4066,7 @@ errout:                               ; SI = message; print + exit
 ;==========================================================================
 ;  MESSAGES
 ;==========================================================================
-m_banner:  db 'ES1688GO 1.5 - unified ES1688 PC Card enabler (PCIC/CS/OB)',13,10,0
+m_banner:  db 'ES1688GO 1.6 - unified ES1688 PC Card enabler (PCIC/CS/OB)',13,10,0
 m_settle:  db 'Socket is slow: CIS settled after ',0
 m_settle2: db ' x 20ms.',13,10,0
 m_settlot: db '2s or more.',13,10,0
