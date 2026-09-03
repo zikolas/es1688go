@@ -15,12 +15,6 @@ With no mode switch the host is auto-detected: **Card Services first** (when
 an arbiter is loaded we must go through it), then the `'SS'` Socket Services
 signature, then an 82365 probe at `3E0h`.
 
-> **Status: freshly merged, not yet re-verified on hardware.** The code is a
-> faithful port/merge of the three parents (each verified on its machine),
-> assembles byte-stable, and passes emulator smoke tests of every non-hardware
-> path — but no card has been enabled by *this* binary yet. Treat it as a
-> release candidate until the on-box matrix below is run.
-
 ## Supported cards
 
 Cards are identified by `CISTPL_MANFID`, plus a `CISTPL_VERS_1` substring
