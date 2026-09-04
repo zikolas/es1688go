@@ -1,5 +1,5 @@
 ;==========================================================================
-;  ES1688GO 1.7 - unified clean-room DOS enabler for ES1688-based PCMCIA
+;  ES1688GO 1.8 - unified clean-room DOS enabler for ES1688-based PCMCIA
 ;               (developed as CARDGO 1.0-1.2; renamed at first commit -
 ;               the name is inherited from the original PCIC-only C
 ;               enabler this project subsumes)
@@ -88,7 +88,7 @@ MODE_PCIC equ 3
 ; blocks BY OFFSET between two runs of the same binary, so bump this on
 ; EVERY release - offsets shift with any rebuild, and a mismatched resident
 ; copy must be refused (reboot to replace), never driven.
-CGVER     equ 0108h
+CGVER     equ 0109h
 
 TDMAX   equ 40h                       ; CS tuple-data buffer size
 VBMAX   equ 40h                       ; VERS_1 capture buffer size
@@ -158,6 +158,7 @@ r_fmok   db 0                         ; OPL timer detect passed
 r_ir1    dw 0                         ; CS IRQ ladder step-1 refusal status
 r_ir2    dw 0                         ; CS IRQ ladder step-2 refusal status
 r_nompu  db 0                         ; 1 = MPU dropped: card has no usable MPU
+r_vpp5   db 0                         ; 1 = BAD_VPP rung fired: host has no Vpp-off level
 matched  db 0                         ; 1 = manifest hit (0 = forced/unknown)
 k_name   dw n_unk                     ; matched card's name
 k_cor    db 20h                       ; COR config index (relocatable)
@@ -747,11 +748,20 @@ cs_configure:
         jne  .cat
         mov  word [p_cfg_at], 0
 .cat:
+        mov  byte [r_vpp5], 0
         mov  byte [p_cfg_vc], 50
-        mov  byte [p_cfg_v1], 0       ; Vpp OFF, no fallback: we never program
+        mov  byte [p_cfg_v1], 0       ; Vpp OFF first: we never program
         mov  byte [p_cfg_v2], 0
         call try_cfg                  ; walks candidate ArgLengths (1Bh dance)
         jnc  .cfgok
+        cmp  ax, 0Fh                  ; BAD_VPP = this SS has no Vpp-off level
+        jne  .cfgfail                 ; (OmniBook table is 5V/12V only): the
+        mov  byte [p_cfg_v1], 50      ; rail is on and unswitchable, so 5V is
+        mov  byte [p_cfg_v2], 50      ; the only value the stack can index.
+        mov  byte [r_vpp5], 1         ; Any other refusal stays a refusal.
+        call try_cfg
+        jnc  .cfgok
+.cfgfail:
         mov  [r_code], ax
         mov  byte [r_stage], 4
         call rel_io_irq               ; undo the partial claim
@@ -3520,6 +3530,11 @@ report:
         call prdec99
 .i4:
         call crlf
+        cmp  byte [r_vpp5], 0         ; BAD_VPP rung fired: say so
+        je   .v4
+        mov  si, m_vpp5
+        call prstr
+.v4:
 ; line 5: "   I/O windows: win4 220-22F, win5 388-38B, ..."
         cmp  byte [wcount], 0
         je   .w5done
@@ -4062,7 +4077,7 @@ errout:                               ; SI = message; print + exit
 ;==========================================================================
 ;  MESSAGES
 ;==========================================================================
-m_banner:  db 'ES1688GO 1.7 - unified ES1688 PC Card enabler (PCIC/CS/OB)',13,10,0
+m_banner:  db 'ES1688GO 1.8 - unified ES1688 PC Card enabler (PCIC/CS/OB)',13,10,0
 m_settle:  db 'Socket is slow: CIS settled after ',0
 m_settle2: db ' x 20ms.',13,10,0
 m_settlot: db '2s or more.',13,10,0
@@ -4096,6 +4111,7 @@ m_fm:      db '  FM ',0
 m_mpu:     db '  MPU ',0
 m_joy:     db '  JOY 201',0
 m_irq:     db '  IRQ ',0
+m_vpp5:    db '   Vpp 5V: this host has no Vpp-off level',13,10,0
 m_query:   db '(?)',0
 m_wins:    db '   I/O windows: ',0
 m_win:     db 'win',0
